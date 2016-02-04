@@ -1,0 +1,388 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-input/paper-input.html">
+<link rel="import" href="../paper-slider/paper-slider.html">
+<link rel="import" href="../d3-element/d3-element.html">
+<link rel="import" href="d3-enable-zoom.html">
+<!--
+An element displaying a d3 tree layout
+
+It is mainly a test for polymer svg capabilities and first go at allowing custom elements to be defined in other namespaces than html.
+
+This allows to declare template like (note **`<g is="d3-enable-zoom">`**):  
+```html
+ <template>
+    <h2>Testing bindings</h2>
+    <p>opacity</p>
+    <paper-slider step="0.1" min="0" max="1" value="{{opacity}}"></paper-slider>
+    <svg id="svg" width="900" height="450">
+      <g is="d3-enable-zoom" test="here we go" opacity="[[opacity]]">
+        <g id="content"></g>
+      </g>
+    </svg>
+  </template>
+```
+and `d3-enable-zoom` declared as 
+```html
+<dom-module id="d3-enable-zoom">
+  <template>
+    <rect id="zoom" class="zoom" data-prevent-focus="true" width="200%" height="200%" x="-50%" y="-50%" opacity$="[[opacity]]" fill="#123"></rect>'
+    <g id="zoomGroup" class="zoomGroup">
+      <content></content>
+    </g>
+  </template>
+</dom-module>
+<script>
+(function() {
+  'use strict';
+
+  Polymer({
+    is: 'd3-enable-zoom',
+    extends: 'g',
+    namespace: 'http://www.w3.org/2000/svg',
+ ....
+```
+
+@demo
+-->
+<dom-module id="d3-layout-tree">
+  <style>
+  :host {
+    display: block;
+    box-sizing: border-box;
+  }
+  
+  #svg::content .node {
+    cursor: pointer;
+  }
+  
+  #svg::content .node circle {
+    fill: #fff;
+    stroke: steelblue;
+    stroke-width: 3px;
+  }
+  
+  #svg::content .node text {
+    font: 12px sans-serif;
+  }
+  
+  #svg::content .link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 2px;
+  }
+  </style>
+  <template>
+    <h2>Testing bindings</h2>
+    <p>opacity</p>
+    <paper-slider step="0.1" min="0" max="1" value="{{opacity}}"></paper-slider>
+    <svg id="svg" width="900" height="450">
+      <g is="d3-enable-zoom" test="here we go" opacity="[[opacity]]">
+        <g id="content"></g>
+      </g>
+    </svg>
+  </template>
+</dom-module>
+<script>
+(function() {
+  'use strict';
+
+  Polymer({
+
+    is: 'd3-layout-tree',
+
+    properties: {
+       /**
+       * `opacity` - setting opacity of the main viewport
+       */
+      opacity: {
+        type: Number,
+        value: 0.5
+      },
+
+      /**
+       * `data` - the hierarchical data to be used for the layout
+       */
+      data: {
+        type: Array,
+        value: [{
+          name: '1',
+          children: [{
+            name: '2'
+          }, {
+            name: '3',
+            children: [{
+              name: '3.2'
+            }, {
+              name: '3.3'
+            }, {
+              name: '3.4'
+            }, {
+              name: '3.5'
+            }, {
+              name: '3.6'
+            }]
+          }, {
+            name: '4'
+          }, {
+            name: '5'
+          }, {
+            name: '6'
+          }]
+        }]
+      },
+
+      /**
+       * `layoutType` - used to switch between layouts (one of tree, )
+       */
+      layoutType: {
+        type: String,
+        value: 'tree',
+        observer: '_layoutTypeChanged'
+      }
+
+
+    },
+
+    _layoutTypeChanged: function() {
+
+    },
+    // Element Lifecycle
+
+    drawD3: function() {
+      var treeData = this.data;
+
+      // ************** Generate the tree diagram  *****************
+      var margin = {
+          top: 20,
+          right: 120,
+          bottom: 20,
+          left: 120
+        },
+        width = 960 - margin.right - margin.left,
+        height = 500 - margin.top - margin.bottom;
+
+      var i = 0,
+        duration = 750,
+        root;
+
+      var tree = d3.layout.tree()
+        .size([height, width]);
+
+      var diagonal = d3.svg.diagonal()
+        .projection(function(d) {
+          return [d.y, d.x];
+        });
+
+      // var svg = d3.select("body").append("svg")
+      var svg = d3.select(this.$.content)
+        .attr("width", width + margin.right + margin.left)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      root = treeData[0];
+      root.x0 = height / 2;
+      root.y0 = 0;
+
+      update(root);
+
+      d3.select(self.frameElement).style("height", "500px");
+
+      function update(source) {
+
+        // Compute the new tree layout.
+        var nodes = tree.nodes(root).reverse(),
+          links = tree.links(nodes);
+
+        // Normalize for fixed-depth.
+        nodes.forEach(function(d) {
+          d.y = d.depth * 180;
+        });
+
+        // Update the nodes…
+        var node = svg.selectAll("g.node")
+          .data(nodes, function(d) {
+            return d.id || (d.id = ++i);
+          });
+
+        // Enter any new nodes at the parent's previous position.
+        var nodeEnter = node.enter().append("g")
+          .attr("class", "node")
+          .attr("transform", function(d) {
+            return "translate(" + source.y0 + "," + source.x0 + ")";
+          })
+          .on("click", click);
+
+        nodeEnter.append("circle")
+          .attr("r", 1e-6)
+          .style("fill", function(d) {
+            return d._children ? "lightsteelblue" : "#fff";
+          });
+
+        nodeEnter.append("text")
+          .attr("x", function(d) {
+            return d.children || d._children ? -13 : 13;
+          })
+          .attr("dy", ".35em")
+          .attr("text-anchor", function(d) {
+            return d.children || d._children ? "end" : "start";
+          })
+          .text(function(d) {
+            return d.name;
+          })
+          .style("fill-opacity", 1e-6);
+
+        // Transition nodes to their new position.
+        var nodeUpdate = node.transition()
+          .duration(duration)
+          .attr("transform", function(d) {
+            return "translate(" + d.y + "," + d.x + ")";
+          });
+
+        nodeUpdate.select("circle")
+          .attr("r", 10)
+          .style("fill", function(d) {
+            return d._children ? "lightsteelblue" : "#fff";
+          });
+
+        nodeUpdate.select("text")
+          .style("fill-opacity", 1);
+
+        // Transition exiting nodes to the parent's new position.
+        var nodeExit = node.exit().transition()
+          .duration(duration)
+          .attr("transform", function(d) {
+            return "translate(" + source.y + "," + source.x + ")";
+          })
+          .remove();
+
+        nodeExit.select("circle")
+          .attr("r", 1e-6);
+
+        nodeExit.select("text")
+          .style("fill-opacity", 1e-6);
+
+        // Update the links…
+        var link = svg.selectAll("path.link")
+          .data(links, function(d) {
+            return d.target.id;
+          });
+
+        // Enter any new links at the parent's previous position.
+        link.enter().insert("path", "g")
+          .attr("class", "link")
+          .attr("d", function(d) {
+            var o = {
+              x: source.x0,
+              y: source.y0
+            };
+            return diagonal({
+              source: o,
+              target: o
+            });
+          });
+
+        // Transition links to their new position.
+        link.transition()
+          .duration(duration)
+          .attr("d", diagonal);
+
+        // Transition exiting nodes to the parent's new position.
+        link.exit().transition()
+          .duration(duration)
+          .attr("d", function(d) {
+            var o = {
+              x: source.x,
+              y: source.y
+            };
+            return diagonal({
+              source: o,
+              target: o
+            });
+          })
+          .remove();
+
+        // Stash the old positions for transition.
+        nodes.forEach(function(d) {
+          d.x0 = d.x;
+          d.y0 = d.y;
+        });
+      }
+
+      // Toggle children on click.
+      function click(d) {
+        if (d.children) {
+          d._children = d.children;
+          d.children = null;
+        } else {
+          d.children = d._children;
+          d._children = null;
+        }
+        update(d);
+      }
+
+    },
+
+    ready: function() {
+      // `ready` is called after all elements have been configured, but
+      // propagates bottom-up. This element's children are ready, but parents
+      // are not.
+      //
+      // This is the point where you should make modifications to the DOM (when
+      // necessary), or kick off any processes the element wants to perform.
+    },
+
+    attached: function() {
+      // `attached` fires once the element and its parents have been inserted
+      // into a document.
+      //
+      // This is a good place to perform any work related to your element's
+      // visual state or active behavior (measuring sizes, beginning animations,
+      // loading resources, etc).
+      // this.initZoom();
+      this.drawD3();
+    },
+
+    initZoom: function() {
+      var groupZoom = d3.select(this.$.zoomGroup);
+
+      var zoom = d3.behavior.zoom()
+        .scaleExtent([0.2, 10])
+        .on("zoom", onZoom);
+
+      function onZoom() {
+        // if (d3.event.sourceEvent && d3.event.sourceEvent.ctrlKey) {
+        //     return
+        // }
+        zoomHandler(d3.event.translate, d3.event.scale);
+      }
+
+      function zoomHandler(translate, scale) {
+        groupZoom
+          .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+        zoom.translate(translate);
+        zoom.scale(scale);
+      }
+
+      d3.select(this.$.zoom).call(zoom);
+    },
+
+    detached: function() {
+      // The analog to `attached`, `detached` fires when the element has been
+      // removed from a document.
+      //
+      // Use this to clean up anything you did in `attached`.
+    }
+
+  });
+})();
+</script>

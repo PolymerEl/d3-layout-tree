@@ -1,0 +1,74 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../d3-element/d3-element.html">
+<!--
+An element for enabling zooming of content
+
+@demo
+-->
+<dom-module id="d3-enable-zoom">
+  <template>
+    <rect id="zoom" class="zoom" test="[[test]]" data-prevent-focus="true" width="200%" height="200%" x="-50%" y="-50%" opacity$="[[opacity]]" fill="#123"></rect>'
+    <g id="zoomGroup" class="zoomGroup">
+      <content></content>
+    </g>
+    <!-- </svg> -->
+  </template>
+</dom-module>
+<script>
+(function() {
+  'use strict';
+
+
+  Polymer({
+
+    is: 'd3-enable-zoom',
+
+    extends: 'g',
+    namespace: 'http://www.w3.org/2000/svg',
+
+    properties: {
+
+      opacity: {
+        type: String,
+        value: 0.4
+      },
+
+    },
+
+    attached: function() {
+      this.initZoom();
+    },
+
+    initZoom: function() {
+      var groupZoom = d3.select(this.$.zoomGroup);
+
+      var zoom = d3.behavior.zoom()
+        .scaleExtent([0.2, 10])
+        .on("zoom", onZoom);
+
+      function onZoom() {
+        zoomHandler(d3.event.translate, d3.event.scale);
+      }
+
+      function zoomHandler(translate, scale) {
+        groupZoom
+          .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+        zoom.translate(translate);
+        zoom.scale(scale);
+      }
+
+      d3.select(this.$.zoom).call(zoom);
+    },
+
+  });
+})();
+</script>

@@ -1,0 +1,33 @@
+{
+  "name": "d3-layout-tree",
+  "version": "1.0.0",
+  "authors": [
+    "christophe.geiser <christophe.geiser@e-smile.org>"
+  ],
+  "description": "A polymer element for displaying a tree layout.",
+  "keywords": [
+    "web-component",
+    "web-components",
+    "d3",
+    "d3.js",
+    "SVG",
+    "polymer",
+    "seed"
+  ],
+  "main": "d3-layout-tree.html",
+  "license": "http://polymer.github.io/LICENSE.txt",
+  "homepage": "https://github.com/PolymerEl/d3-layout-tree",
+  "ignore": [
+    "/.*",
+    "/test/",
+    "/demo/"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.0.0",
+    "d3-element":"PolymerEl/d3-element"
+  },
+  "devDependencies": {
+    "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
+    "web-component-tester": "*"
+  }
+}
