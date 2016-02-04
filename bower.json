@@ -1,6 +1,6 @@
 {
   "name": "d3-layout-tree",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "authors": [
     "christophe.geiser <christophe.geiser@e-smile.org>"
   ],
@@ -23,7 +23,7 @@
     "/demo/"
   ],
   "dependencies": {
-    "polymer": "Polymer/polymer#^1.0.0",
+    "polymer": "https://github.com/PolymerEl/polymer#namespace",
     "d3-element":"PolymerEl/d3-element"
   },
   "devDependencies": {
