@@ -1,56 +1,9 @@
 # d3-layout-tree
 
-An element providing a starting point for your own reusable Polymer elements.
+This is just a test for trying out Polymer SVG support as released under [this pull request](https://github.com/Polymer/polymer/pull/3372), allowing defining SVG custom elements. 
 
+## An example of two-way binding with Polymer Custom elements : 
+<div>
+<img src="https://github.com/PolymerEl/d3-layout-tree/master/images/polymer svg binding.png" width="600">
+</div>
 
-## Dependencies
-
-Element dependencies are managed via [Bower](http://bower.io/). You can
-install that via:
-
-    npm install -g bower
-
-Then, go ahead and download the element's dependencies:
-
-    bower install
-
-
-## Playing With Your Element
-
-If you wish to work on your element in isolation, we recommend that you use
-[Polyserve](https://github.com/PolymerLabs/polyserve) to keep your element's
-bower dependencies in line. You can install it via:
-
-    npm install -g polyserve
-
-And you can run it via:
-
-    polyserve
-
-Once running, you can preview your element at
-`http://localhost:8080/components/d3-layout-tree/`, where `d3-layout-tree` is the name of the directory containing it.
-
-
-## Testing Your Element
-
-Simply navigate to the `/test` directory of your element to run its tests. If
-you are using Polyserve: `http://localhost:8080/components/d3-layout-tree/test/`
-
-### web-component-tester
-
-The tests are compatible with [web-component-tester](https://github.com/Polymer/web-component-tester).
-Install it via:
-
-    npm install -g web-component-tester
-
-Then, you can run your tests on _all_ of your local browsers via:
-
-    wct
-
-#### WCT Tips
-
-`wct -l chrome` will only run tests in chrome.
-
-`wct -p` will keep the browsers alive after test runs (refresh to re-run).
-
-`wct test/some-file.html` will test only the files you specify.

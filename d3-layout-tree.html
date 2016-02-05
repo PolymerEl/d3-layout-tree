@@ -13,6 +13,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../paper-slider/paper-slider.html">
 <link rel="import" href="../d3-element/d3-element.html">
 <link rel="import" href="d3-enable-zoom.html">
+<link rel="import" href="svg-tag-behavior.html">
 <!--
 An element displaying a d3 tree layout
 
@@ -57,8 +58,8 @@ and `d3-enable-zoom` declared as
 <dom-module id="d3-layout-tree">
   <style>
   :host {
-    display: block;
-    box-sizing: border-box;
+    /*display: block;*/
+    /*box-sizing: border-box;*/
   }
   
   #svg::content .node {
@@ -67,7 +68,7 @@ and `d3-enable-zoom` declared as
   
   #svg::content .node circle {
     fill: #fff;
-    stroke: steelblue;
+    stroke: var(--d3-layout-primary-color, --dark-primary-color);
     stroke-width: 3px;
   }
   
@@ -82,12 +83,11 @@ and `d3-enable-zoom` declared as
   }
   </style>
   <template>
-    <h2>Testing bindings</h2>
-    <p>opacity</p>
-    <paper-slider step="0.1" min="0" max="1" value="{{opacity}}"></paper-slider>
-    <svg id="svg" width="900" height="450">
-      <g is="d3-enable-zoom" test="here we go" opacity="[[opacity]]">
-        <g id="content"></g>
+    <svg id="svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="100%" width="100%" min-height="100%" viewBox$="{{viewBox}}">
+      <g is="d3-enable-zoom" scale="{{scale}}">
+        <g id="content">
+        </g>
+        <g is="d3-enable-brush" class="d3-brush"></g>'
       </g>
     </svg>
   </template>
@@ -101,12 +101,13 @@ and `d3-enable-zoom` declared as
     is: 'd3-layout-tree',
 
     properties: {
-       /**
-       * `opacity` - setting opacity of the main viewport
+      /**
+       * `scale` - setting opacity of the main viewport
        */
-      opacity: {
+      scale: {
         type: Number,
-        value: 0.5
+        // value: 1,
+        notify: true
       },
 
       /**
@@ -150,12 +151,20 @@ and `d3-enable-zoom` declared as
         observer: '_layoutTypeChanged'
       }
 
-
     },
+
+    behaviors: [
+      Polymer.SvgTagBehavior
+    ],
+
+    // _scaleChange: function(scale) {
+    //   console.trace('scale: ', this.scale);
+    // },
 
     _layoutTypeChanged: function() {
 
     },
+
     // Element Lifecycle
 
     drawD3: function() {
@@ -351,30 +360,6 @@ and `d3-enable-zoom` declared as
       // loading resources, etc).
       // this.initZoom();
       this.drawD3();
-    },
-
-    initZoom: function() {
-      var groupZoom = d3.select(this.$.zoomGroup);
-
-      var zoom = d3.behavior.zoom()
-        .scaleExtent([0.2, 10])
-        .on("zoom", onZoom);
-
-      function onZoom() {
-        // if (d3.event.sourceEvent && d3.event.sourceEvent.ctrlKey) {
-        //     return
-        // }
-        zoomHandler(d3.event.translate, d3.event.scale);
-      }
-
-      function zoomHandler(translate, scale) {
-        groupZoom
-          .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
-        zoom.translate(translate);
-        zoom.scale(scale);
-      }
-
-      d3.select(this.$.zoom).call(zoom);
     },
 
     detached: function() {

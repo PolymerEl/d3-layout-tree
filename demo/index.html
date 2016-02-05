@@ -9,18 +9,37 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-    <title>d3-layout-tree Demo</title>
-    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
-    <link rel="import" href="../d3-layout-tree.html">
-  </head>
-  <body>
 
-    <p>An example of <code>&lt;d3-layout-tree&gt;</code>:</p>
-    
-    <d3-layout-tree ></d3-layout-tree>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>d3-layout-tree Demo</title>
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../d3-layout-tree.html">
+  <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
+  <style is="custom-style">
+  .svg-container {
+    height: 300px;
+  }
+  
+  d3-layout-tree {
+    --d3-layout-primary-color: steelblue;
+  }
+  </style>
+</head>
 
-  </body>
+<body>
+  <div class="vertical-section-container centered">
+    <h3>An example of <code>&lt;d3-layout-tree&gt;</code>:</h3>
+    <template is="dom-bind">
+      <demo-snippet class="centered-demo">
+        <p>zoom level</p>
+        <paper-slider step="0.01" min="0.1" max="2" immediate-value="1" value="{{scale}}"></paper-slider>
+        <div class="svg-container">
+          <d3-layout-tree scale="{{scale}}" _tabindex="200"></d3-layout-tree>
+        </div>
+      </demo-snippet>
+    </template>
+  </div>
+
 </html>

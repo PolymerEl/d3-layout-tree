@@ -17,17 +17,15 @@ An element for enabling zooming of content
 -->
 <dom-module id="d3-enable-zoom">
   <template>
-    <rect id="zoom" class="zoom" test="[[test]]" data-prevent-focus="true" width="200%" height="200%" x="-50%" y="-50%" opacity$="[[opacity]]" fill="#123"></rect>'
+    <rect id="zoom" class="zoom" data-prevent-focus="true" width="200%" height="200%" x="-50%" y="-50%" fill="#fff"></rect>'
     <g id="zoomGroup" class="zoomGroup">
       <content></content>
     </g>
-    <!-- </svg> -->
   </template>
 </dom-module>
 <script>
 (function() {
   'use strict';
-
 
   Polymer({
 
@@ -37,38 +35,79 @@ An element for enabling zooming of content
     namespace: 'http://www.w3.org/2000/svg',
 
     properties: {
-
-      opacity: {
-        type: String,
-        value: 0.4
+      scale: {
+        type: Number,
+        value: 1,
+        notify: true
       },
-
+      translate: {
+        type: Array,
+        value: [0, 0]
+      },
+      scaleExtent: {
+        type: Array,
+        value: [0.1, 10],
+        observer: '_scaleExtentChange'
+      }
     },
+    observers: [
+      '_tranformChanged(translate,scale)'
+    ],
 
     attached: function() {
-      this.initZoom();
+      this._initZoom();
     },
 
-    initZoom: function() {
-      var groupZoom = d3.select(this.$.zoomGroup);
+    detached: function() {
+      this.zoom = this.__isZooming = this.__isTransforming = null;
+    },
 
-      var zoom = d3.behavior.zoom()
-        .scaleExtent([0.2, 10])
+    _tranformChanged: function(translate, scale) {
+      if (!this.__isZooming) {
+        this._zoomHandler(translate, scale);
+      }
+    },
+
+    _scaleExtentChange: function(scaleExtent) {
+      if (this.zoom) {
+        this.zoom.scaleExtent(scaleExtent);
+      }
+    },
+
+    _zoomHandler: function(translate, scale, animate) {
+      if (animate) {
+        d3.select(this.$.zoomGroup).transition().attr('transform', 'translate(' + translate + ')scale(' + scale + ')');
+      } else {
+        d3.select(this.$.zoomGroup).attr('transform', 'translate(' + translate + ')scale(' + scale + ')');
+      }
+
+      this.__isZooming = true;
+      this.set('scale', scale);
+      this.set('translate', translate);
+      this.__isZooming = false;
+
+      if (this.zoom) {
+        this.zoom.translate(translate);
+        this.zoom.scale(scale);
+      }
+    },
+
+    _initZoom: function() {
+      var groupZoom = d3.select(this.$.zoomGroup),
+        me = this;
+
+      me.zoom = d3.behavior.zoom()
+        .scaleExtent(me.scaleExtent)
         .on("zoom", onZoom);
 
       function onZoom() {
-        zoomHandler(d3.event.translate, d3.event.scale);
+        // d3.event.sourceEvent.stopPropagation();
+        // we round the scale for teh tiem being (see https://github.com/PolymerElements/paper-slider/issues/116);
+        me._zoomHandler(d3.event.translate, d3.round(d3.event.scale, 2));
       }
 
-      function zoomHandler(translate, scale) {
-        groupZoom
-          .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
-        zoom.translate(translate);
-        zoom.scale(scale);
-      }
-
-      d3.select(this.$.zoom).call(zoom);
-    },
+      d3.select(this.$.zoom).call(me.zoom);
+    }
 
   });
 })();
