@@ -23,7 +23,7 @@
     "/demo/"
   ],
   "dependencies": {
-    "polymer": "https://github.com/PolymerEl/polymer#namespace",
+    "polymer": "https://github.com/PolymerEl/polymer/tree/namespace",
     "d3-element":"https://github.com/PolymerEl/d3-element"
   },
   "devDependencies": {
