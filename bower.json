@@ -23,8 +23,8 @@
     "/demo/"
   ],
   "dependencies": {
-    "polymer": "https://github.com/PolymerEl/polymer/tree/namespace",
-    "d3-element":"https://github.com/PolymerEl/d3-element"
+    "polymer": "PolymerEl/polymer#ed15615b63414f25e9591ce08df36e096e2426c2",
+    "d3-element":"PolymerEl/d3-element"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
