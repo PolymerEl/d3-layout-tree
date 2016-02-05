@@ -24,7 +24,7 @@
   ],
   "dependencies": {
     "polymer": "https://github.com/PolymerEl/polymer#namespace",
-    "d3-element":"PolymerEl/d3-element"
+    "d3-element":"https://github.com/PolymerEl/d3-element"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
