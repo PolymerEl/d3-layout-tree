@@ -16,7 +16,7 @@
   ],
   "main": "d3-layout-tree.html",
   "license": "http://polymer.github.io/LICENSE.txt",
-  "homepage": "https://github.com/PolymerEl/d3-layout-tree",
+  "homepage": "http://polymerel.github.io/d3-layout-tree/components/d3-layout-tree/",
   "ignore": [
     "/.*",
     "/test/",
