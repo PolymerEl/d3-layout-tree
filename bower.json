@@ -24,7 +24,11 @@
   ],
   "dependencies": {
     "polymer": "PolymerEl/polymer#ed15615b63414f25e9591ce08df36e096e2426c2",
-    "d3-element":"PolymerEl/d3-element"
+    "d3-element":"PolymerEl/d3-element",
+    "paper-elements": "PolymerElements/paper-elements#^1.0.1",
+    "paper-material": "polymerelements/paper-material#^1.0.0",
+    "paper-behaviors": "polymerelements/paper-behaviors#^1.0.0",
+    "iron-demo-helpers": "polymerelements/iron-demo-helpers#^1.0.0"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
