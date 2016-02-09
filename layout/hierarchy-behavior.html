@@ -1,0 +1,107 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../polymer/polymer.html">
+<link rel="import" href="../../d3-element/d3-element.html">
+<!--
+
+-->
+
+<script>
+(function() {
+  'use strict';
+
+  var B = window.MyBehaviors = window.MyBehaviors || {};
+  B.layout = B.layout || {};
+
+  B.layout.Hierarchy = {
+    properties: {
+      /**
+       * `childrenName` property to be used for parent/child association
+       */
+      childrenName: {
+        type: String,
+        value: 'children'
+      }
+
+    },
+
+    /**
+     * `visit` visit all nodes recursively and run the provided function
+     */
+    visit: function(parent, visitFn) {
+      if (!parent) {
+        return;
+      }
+      visitFn(parent);
+      // var me = this,
+      //   name = this.childrenName,
+      var children = parent[this.childrenName];
+      if (children) {
+        var count = children.length;
+        for (var i = 0; i < count; i++) {
+          this.visit(children[i], visitFn);
+        }
+      }
+    },
+    
+    collapse: function(d, depth, skip) {
+
+      skip = skip || 0;
+        depth = (depth || (depth === 0) ? depth : 1) + skip;
+      var children,
+        name = this.childrenName,
+        _name = '__' + name;
+      if ((children = d[name]) && depth) {
+        // children = d.d3_children;
+        if (skip) {
+          skip--;
+        } else {
+          d[_name] = children;
+        }
+        depth--;
+        if (children) {
+          var count = children.length;
+          for (var i = 0; i < count; i++) {
+            this.collapse(children[i], depth, skip);
+          }
+        }
+        delete(d[name]);
+        //                  d.d3_children = null;
+      }
+    },
+
+    expand: function(d, depth, skip) {
+      skip = skip || 0;
+        depth = (depth || (depth === 0) ? depth : 1) + skip;
+
+      var children,
+        name = this.childrenName,
+        _name = '__' + name;
+      if ((children = d[_name]) && depth) {
+        if (skip) {
+          skip--;
+        } else {
+          d[name] = children;
+        }
+        depth--;
+        if (children) {
+          var count = children.length;
+          for (var i = 0; i < count; i++) {
+            this.expand(children[i], depth, skip);
+          }
+        }
+        delete(d[_name]);
+        //                  d._d3_children = null;
+      }
+    },
+  };
+
+})();
+</script>

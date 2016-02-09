@@ -1,0 +1,113 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../polymer/polymer.html">
+<script>
+(function() {
+  'use strict';
+
+  /**
+   * Set of properties to be applied to SVGElement
+   */
+
+  var B = window.MyBehaviors = window.MyBehaviors || {};
+  B.svg = B.svg || {};
+
+  B.svg.Util = {
+    properties: {
+      linkCls: {
+        type: String
+      },
+      tileCls: {
+        type: String
+      }
+      // linkCls: {
+      //   type: String
+      // },
+    },
+
+    observers: [],
+
+    drawMarker: function() {
+      d3.select(this.ownerSVGElement).insert('defs', 'g')
+        .attr('id', 'def-marker')
+        .append('marker')
+        .attr('id', 'marker')
+        .attr('viewBox', '-1 -10 30 30')
+        .attr('refX', '33%')
+        .attr('markerWidth', 6)
+        .attr('class', this.linkCls + ' link-marker ' + (this.tileCls || ''))
+        .attr('markerHeight', 6)
+        .attr('orient', 'auto')
+        .append('path')
+        .attr('d', 'M0,-5L10,0L0,5z');
+    },
+
+    _fitConfig: function(node, fitToNode, adjust) {
+      if (!fitToNode) {
+        fitToNode = this;
+      }
+       adjust = adjust || this.adjustFit;
+
+      var bb = node.getBBox(),
+        fb = fitToNode.getBBox(),
+        bB = node.getBoundingClientRect(),
+        fB = fitToNode.getBoundingClientRect(),
+        k = d3.min([fB.height / bB.height, fB.width / bB.width]) * adjust,
+        point = node.ownerSVGElement.createSVGPoint(),
+        m = node.getTransformToElement(fitToNode).inverse(),
+        angle = ((180 / Math.PI) * Math.atan2(m.a, m.b) - 90) % 360,
+        skew = (180 / Math.PI) * Math.atan2(m.c, m.d),
+        center = [bb.width / 2 + bb.x, bb.height / 2 + bb.y];
+
+      point.x = (fb.width / 2) + (fb.x);
+      point.y = (fb.height / 2) + (fb.y);
+
+      var p = point.matrixTransform(m);
+      p = [p.x, p.y];
+
+      return {
+        point: p,
+        angle: angle,
+        center: center,
+        k: k,
+        skew: skew
+      }
+    },
+
+    fitTransform: function(node, fitToNode, adjust) {
+      var c = this._fitConfig(node, fitToNode, adjust);
+      return (c.angle === 0 ? '' : 'rotate(' + c.angle + ',' + c.center[0] + ',' + c.center[1] + ')') + 'translate(' + (c.point[0] - c.k * c.center[0]) + ',' + (c.point[1] - c.k * c.center[1]) + ')' + 'scale(' + c.k + ')' + (c.skew === 0 ? '' : 'skewX(' + c.skew + ')');
+    },
+
+    fitTo: function(node, fitToNode, adjust) {
+
+      if (!node) {
+        console.info('node is not defined');
+        node = this;
+        // node = this.zoomGroupEl.dom
+        // d3.select(node).attr('transform', null)
+        //d3.select(this.zoomEl.dom).attr('transform', null)
+      }
+
+      var tr = this.fitTransform(node, fitToNode, adjust);
+
+      d3.select(node).attr('transform', tr);
+      this.fire('svg-fit', node)
+        // if (me.zoom && !fitToNode) {
+        //   tr = d3.transform(tr);
+        //   me.zoom.translate(tr.translate);
+        //   me.zoom.scale(tr.scale[0]);
+        // }
+
+    }
+  };
+
+})();
+</script>
