@@ -1,0 +1,31 @@
+{
+  "name": "d3-element",
+  "version": "3.0.0",
+  "authors": [
+    "christophe-g <christophe.geiser@gmail.com>"
+  ],
+  "description": "polymer element for importing d3.js",
+  "homepage": "https://github.com/PolymerEl/d3-element",
+  "dependencies": {
+    "d3": "3.x"
+  },
+  "main": "d3-element.html",
+  "moduleType": [],
+  "keywords": [
+    "d3.js",
+    "polymer",
+    "SVG",
+    "webcomponent",
+    "webcomponents",
+    "d3js"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

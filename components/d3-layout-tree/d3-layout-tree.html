@@ -1,0 +1,425 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../polymer/polymer.html">
+<!-- <link rel="import" href="dist/polymer.html"> -->
+<link rel="import" href="../paper-input/paper-input.html">
+<link rel="import" href="../paper-slider/paper-slider.html">
+<link rel="import" href="../d3-element/d3-element.html">
+<link rel="import" href="layout/tree.html">
+<link rel="import" href="layout/tree-radial.html">
+<link rel="import" href="layout/cluster.html">
+<link rel="import" href="layout/cluster-radial.html">
+<link rel="import" href="layout/hierarchy-behavior.html">
+<!-- <link rel="import" href="layout-cluster-behavior.html"> -->
+<!-- <link rel="import" href="coordinate/cartesian-behavior.html"> -->
+<!-- <link rel="import" href="coordinate/polar-behavior.html"> -->
+<link rel="import" href="d3-enable-zoom.html">
+<link rel="import" href="svg/tag-behavior.html">
+<link rel="import" href="svg/node-drag-behavior.html">
+<link rel="import" href="test-circle.html">
+<!--
+An element displaying a d3 tree layout
+
+It is mainly a test for polymer svg capabilities and first go at allowing custom elements to be defined in other namespaces than html.
+
+This allows to declare template like (note **`<g is="d3-enable-zoom">`**):  
+```html
+ <template>
+    <h2>Testing bindings</h2>
+    <p>opacity</p>
+    <paper-slider step="0.1" min="0" max="1" value="{{opacity}}"></paper-slider>
+    <svg id="svg" width="900" height="450">
+      <g is="d3-enable-zoom" test="here we go" opacity="[[opacity]]">
+        <g id="content"></g>
+      </g>
+    </svg>
+  </template>
+```
+and `d3-enable-zoom` declared as 
+```html
+<dom-module id="d3-enable-zoom">
+  <template>
+    <rect id="zoom" class="zoom" data-prevent-focus="true" width="200%" height="200%" x="-50%" y="-50%" opacity$="[[opacity]]" fill="#123"></rect>'
+    <g id="zoomGroup" class="zoomGroup">
+      <content></content>
+    </g>
+  </template>
+</dom-module>
+<script>
+(function() {
+  'use strict';
+
+  Polymer({
+    is: 'd3-enable-zoom',
+    extends: 'g',
+    namespace: 'http://www.w3.org/2000/svg',
+ ....
+```
+
+@demo
+-->
+<dom-module id="d3-layout-tree">
+  <style>
+  :host {
+    display: block;
+    height: 100%;
+    /*box-sizing: border-box;*/
+  }
+  
+  #svg::content .node {
+    cursor: pointer;
+  }
+  
+  #svg::content .node .entity {
+    fill: #fff;
+    stroke: var(--d3-layout-color, --dark-primary-color);
+    stroke-width: 3px;
+    @apply(--d3-layout-entity);
+  }
+  
+  #svg::content .entity.hasChildren {
+    /*fill: #fff;*/
+    
+    fill: var(--d3-layout-light-color, --light-primary-color);
+    @apply(--d3-layout-entity-children);
+    /* stroke-width: 3px; */
+  }
+
+  #svg::content .node text {
+    font: 12px sans-serif;
+    @apply(--d3-layout-text);
+  }
+  
+  #svg::content .link {
+    fill: none;
+    stroke: var(--d3-layout-link-color, --secondary-text-color);
+    stroke-width: 2px;
+    @apply(--d3-layout-link);
+  }
+  
+  #svg::content .ghostCircle.show {
+    display: block;
+  }
+  
+  #svg::content .ghostCircle,
+  #svg::content .activeDrag .ghostCircle {
+    display: none;
+    fill: var(--d3-layout-ghost-color, --dark-accent-color);
+  }
+  </style>
+  <template>
+    <layout-tree id="tree"></layout-tree>
+    <layout-tree-radial id="tree-radial"></layout-tree-radial>
+    <layout-cluster id="cluster"></layout-cluster>
+    <layout-cluster-radial id="cluster-radial"></layout-cluster-radial>
+    <svg id="svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="100%" width="100%" min-height="100%" viewBox$="{{viewBox}}">
+      <g is="d3-enable-zoom" scale="{{scale}}">
+        <!-- <g is="test-circle" /> -->
+        <g id="content">
+        </g>
+        <g is="d3-enable-brush" class="d3-brush"></g>'
+      </g>
+    </svg>
+  </template>
+</dom-module>
+<script>
+(function() {
+  'use strict';
+
+  Polymer({
+
+    is: 'd3-layout-tree',
+
+    properties: {
+
+      selected: {
+        type: Array,
+        notify: true,
+        value: function() {
+          return [];
+        }
+      },
+
+      layout: {
+        type: String,
+        value: 'tree',
+        notify: true,
+        observer: '_layoutChanged'
+      },
+
+      duration: {
+        type: Number,
+        value: 700,
+        notify: true,
+        observer: '_smthChanged'
+      },
+
+      /**
+       * `data` - the hierarchical data to be used for the tree layout
+       */
+      data: {
+        type: Array,
+        value: [{
+          name: '1',
+          children: [{
+            name: '2'
+          }, {
+            name: '3',
+            children: [{
+              name: '3.2'
+            }, {
+              name: '3.3'
+            }, {
+              name: '3.4'
+            }, {
+              name: '3.5'
+            }, {
+              name: '3.6'
+            }]
+          }, {
+            name: '4'
+          }, {
+            name: '5',
+            children: [{
+              name: '5.2'
+            }, {
+              name: '5.3',
+              children: [{
+                name: '5.3.2'
+              }, {
+                name: '5.3.3'
+              }, {
+                name: '5.3.4'
+              }, {
+                name: '5.3.5'
+
+              }]
+            }, {
+              name: '5.4'
+            }, {
+              name: '5.5'
+
+            }]
+          }, {
+            name: '6'
+          }]
+        }]
+      },
+
+      // layoutType: {
+      //   type: String,
+      //   value: 'tree',
+      //   observer: '_layoutTypeChanged'
+      // }
+    },
+
+    behaviors: [
+      MyBehaviors.svg.Tag, MyBehaviors.svg.NodeDrag, MyBehaviors.layout.Hierarchy
+    ],
+
+    _layoutChanged: function(layout) {
+      // re-compute layout object
+      if (layout) {
+        this.draw();
+      }
+
+    },
+    _smthChanged: function() {
+      // re-compute layout object
+      // if (this.layout) {
+      this.draw();
+      // }
+
+    },
+
+    // Element Lifecycle
+    getActiveLayout: function() {
+      return this.$[this.layout];
+    },
+
+    draw: function() {
+
+      var data = this.data,
+        me = this,
+        i = 0;
+
+      if (!this.data) {
+        return;
+      }
+
+      var layout = this.getActiveLayout();
+      
+      var duration = this.duration,
+          name = this.childrenName,
+          _name = '__' + name;
+
+
+      var currentLayout = layout.layout;
+      var diagonal = layout.diagonal;
+
+      // var svg = d3.select("body").append("svg")
+      var svg = d3.select(this.$.content);
+
+      var root = this._root = layout.setRoot(data);
+
+      this._updateDraw = function(source) {
+
+        // Compute the new tree layout.
+        var nodes = currentLayout.nodes(root).reverse(),
+          links = currentLayout.links(nodes);
+
+        if (currentLayout.normalize) {
+          nodes.forEach(currentLayout.normalize(d));
+        }
+
+        // Update the nodes…
+        var node = svg.selectAll('g.node')
+          .data(nodes, function(d) {
+            return d.id || (d.id = ++i);
+          });
+
+        // Enter any new nodes at the parent's previous position.
+        var nodeEnter = node.enter().append('g')
+          .call(me._dragListener)
+          .attr('class', 'node')
+          .attr('transform', layout.enter(source))
+          .on('click', click)
+
+        // this.nodeGhost(nodeEnter);
+
+
+        nodeEnter.append('circle')
+          .attr('r', 1e-6)
+          .attr('class', 'entity')
+          .classed('hasChildren', function(d) {
+            return !!d[_name];
+          });
+          // .style('fill', function(d) {
+          //   return d._children ? 'lightsteelblue' : '#fff';
+          // });
+
+        this.nodeGhost(nodeEnter);
+
+        nodeEnter.append('text')
+          .attr('x', function(d) {
+            return d[name] || d[_name] ? -13 : 13;
+          })
+          .attr('dy', '.35em')
+          .attr('text-anchor', function(d) {
+            return d[name] || d[_name] ? 'end' : 'start';
+          })
+          .text(function(d) {
+            return d.name;
+          })
+          .style('fill-opacity', 1e-6);
+
+        // Transition nodes to their new position.
+        var nodeUpdate = node.transition()
+          .duration(duration)
+          .attr('transform', layout.update(source));
+
+        nodeUpdate.select('circle.entity')
+          .attr('r', 10)
+          .each('start', function(d){
+            d3.select(this)
+              .classed('hasChildren', !!d[_name])
+          });
+          // .classed('hasChildren', function(d) {
+          //   return !!d._children;
+          // });
+
+        nodeUpdate.select('text')
+          .style('fill-opacity', 1);
+
+        // Transition exiting nodes to the parent's new position.
+        var nodeExit = node.exit().transition()
+          .duration(duration)
+          .attr('transform', layout.exit(source))
+          .remove();
+
+        nodeExit.select('circle')
+          .attr('r', 1e-6);
+
+        nodeExit.select('text')
+          .style('fill-opacity', 1e-6);
+
+        // Update the links…
+        var link = svg.selectAll('path.link')
+          .data(links, function(d) {
+            return d.target.id;
+          });
+
+        // Enter any new links at the parent's previous position.
+        link.enter().insert('path', 'g')
+          .attr('class', 'link')
+          .attr('d', layout.enterLink(source));
+
+        // Transition links to their new position.
+        link.transition()
+          .duration(duration)
+          .attr('d', layout.updateLink(source));
+        // .attr('d', diagonal);
+
+        // Transition exiting nodes to the parent's new position.
+        link.exit().transition()
+          .duration(duration)
+          .attr('d', layout.exitLink(source))
+          .remove();
+
+        // Stash the old positions for transition.
+        nodes.forEach(function(d) {
+          d.x0 = d.x;
+          d.y0 = d.y;
+        });
+      }
+
+      // Toggle children on click.
+      function click(d) {
+        var c;
+        if (c = d[name]) {
+          d[_name] = c;
+          d[name] = null;
+        } else {
+          d[name] = d[_name];
+          d[_name] = null;
+        }
+        
+        me._updateDraw(d);
+        // update(d);
+      }
+
+      this._updateDraw(root);
+
+
+
+    },
+
+    attached: function() {
+      // `attached` fires once the element and its parents have been inserted
+      // into a document.
+      //
+      // This is a good place to perform any work related to your element's
+      // visual state or active behavior (measuring sizes, beginning animations,
+      // loading resources, etc).
+      // this.initZoom();
+      this.draw();
+    },
+
+    detached: function() {
+      // The analog to `attached`, `detached` fires when the element has been
+      // removed from a document.
+      //
+      // Use this to clean up anything you did in `attached`.
+      this._updateDraw = this._root = null;
+    }
+
+  });
+})();
+</script>

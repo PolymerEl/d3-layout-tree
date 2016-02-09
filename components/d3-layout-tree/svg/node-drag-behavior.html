@@ -1,0 +1,295 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../polymer/polymer.html">
+<link rel="import" href="../../d3-element/d3-element.html">
+<script>
+(function() {
+  'use strict';
+
+  /**
+   * Allow node Dragging
+   */
+
+  var B = window.MyBehaviors = window.MyBehaviors || {};
+  B.svg = B.svg || {};
+
+  B.svg.NodeDrag = {
+    properties: {
+      allowDrag: {
+        type: Boolean,
+        value: true,
+        notify: true,
+        observer: '_allowDragChanged'
+      },
+      selectedNode: {
+        type: Object,
+        notify: true
+      },
+      draggingNode: {
+        type: Object,
+        notify: true
+      }
+    },
+
+
+    _allowDragChanged: function() {
+      this.draw();
+    },
+
+    _initiateDragListener: function() {
+      var me = this,
+        dragStarted,
+        dragNodes,
+        domNode,
+        name, 
+        _name,
+        // data,
+        activeLayout,
+        links,
+        nodesExit,
+        parentLink,
+        nodePaths,
+        d3Content = d3.select(this.$.content),
+        selectedNode = null,
+        draggingNode = null;
+
+      // function beforeEndDrag() {
+
+      // }
+
+      function initiateDrag(d, domNode) {
+        draggingNode = d;
+        me.set('draggingNode', d);
+        d3.select(domNode).attr('pointer-events', 'none');
+        //d3.select(domNode).select('.ghostCircle').attr('pointer-events', 'none');
+        d3Content.selectAll('.ghostCircle').classed('show', true);
+        // d3Content.selectAll('.ghostCircle').classed('show');
+        d3.select(domNode).classed('activeDrag', true);
+
+        d3Content.selectAll('g.node').sort(function(a, b) { // select the parent and sort the path's
+          if (a.id !== draggingNode.id) {
+            return 1;
+          } // a is not the hovered element, send 'a' to the back
+          else {
+            return -1;
+          } // a is the hovered element, bring 'a' to the front
+        });
+        // if nodes has children, remove the links and nodes
+        // layout = me.getactiveLayout();
+
+        if (dragNodes.length > 1) {
+          // remove link paths
+          links = activeLayout.layout.links(dragNodes);
+          nodePaths = d3Content.selectAll('path.link')
+            .data(links, function(d) {
+              return d.target.id;
+            }).remove();
+          // remove child nodes
+          nodesExit = d3Content.selectAll('g.node')
+            .data(dragNodes, function(d) {
+              return d.id;
+            }).filter(function(d, i) {
+              if (d.id === draggingNode.id) {
+                return false;
+              }
+              return true;
+            }).remove();
+        }
+
+        // remove parent link
+        parentLink = activeLayout.layout.links(activeLayout.layout.nodes(draggingNode.parent));
+        d3Content.selectAll('path.link').filter(function(d, i) {
+          if (d.target.id === draggingNode.id) {
+            return true;
+          }
+          return false;
+        }).remove();
+
+        dragStarted = null;
+      }
+
+      function endDrag(d) {
+        me.set('selectedNode', null);
+        d3Content.selectAll('.ghostCircle').classed('show', false);
+        d3.select(domNode).classed('activeDrag', false);
+
+        // now restore the mouseover event or we won't be able to drag a 2nd time
+        d3.select(domNode).attr('pointer-events', null);
+        me._callOnDrag();
+        if (me.draggingNode !== null) {
+          me._updateDraw(d);
+          me.centerNode(draggingNode);
+          draggingNode = me.draggingNode = null;
+        }
+      }
+
+      me._dragListener = d3.behavior.drag()
+        .on('dragstart', function(d) {
+          // var data = me.dataAccessor(d);
+          if (!d || d._preventDrag) {
+            return;
+          }
+          activeLayout = me.getActiveLayout();
+          name = me.childrenName;
+          _name = '__' + name;
+          dragStarted = true;
+          dragNodes = activeLayout.layout.nodes(d);
+          d3.event.sourceEvent.stopPropagation();
+          // it's important that we suppress the mouseover event on the node being dragged. Otherwise it will absorb the mouseover event and the underlying node will not detect it 
+          //d3.select(this).attr('pointer-events', 'none');
+        })
+        .on('drag', function(d) {
+          // data = me.dataAccessor(d);
+          if (!d || d._preventDrag) {
+            return;
+          }
+
+          if (dragStarted) {
+            domNode = this;
+            initiateDrag(d, domNode);
+          }
+
+          //var layoutType = getLayoutType();
+          if (d3.event.sourceEvent.ctrlKey) {
+            return me.callOnCtrlDrag();
+          }
+
+          // var relCoords = d3.mouse(d3Content.node());
+          activeLayout.handleProjection(d3.select(this), d);
+          me._callOnDrag();
+        }).on('dragend', function(d) {
+          // data = me.dataAccessor(d);
+          if (!d || d.preventDrag) {
+            return;
+          }
+
+          domNode = this;
+          // me.set('selectedNode', d);
+          selectedNode = me.selectedNode;
+          draggingNode = me.draggingNode;
+          if (selectedNode) {
+            var index = draggingNode.parent[name].indexOf(draggingNode);
+            if (index > -1) {
+              draggingNode.parent[name].splice(index, 1);
+            }
+            if (typeof selectedNode[name] !== 'undefined' || typeof selectedNode[_name] !== 'undefined') {
+              if (typeof selectedNode[name] !== 'undefined') {
+                selectedNode[name].push(draggingNode);
+              } else {
+                selectedNode[_name].push(draggingNode);
+              }
+            } else {
+              selectedNode[name] = [];
+              selectedNode[name].push(draggingNode);
+            }
+            // Make sure that the node being added to is expanded so user can see added node is correctly moved
+            me.expand(selectedNode);
+            // sortTree();
+            endDrag(selectedNode);
+
+            me.fire('d3dragend', me, draggingNode, selectedNode);
+          }
+          endDrag(d);
+        });
+
+    },
+
+    _callOnDrag: function() {
+      var data = [],
+        me = this,
+        selectedNode = me.selectedNode,
+        draggingNode = me.draggingNode;
+
+
+      if (draggingNode && selectedNode) {
+
+        // have to flip the source coordinates since we did this for the existing connectors on the original tree
+        // selectedNode = me.dataAccessor(selectedNode);
+        // draggingNode = me.dataAccessor(draggingNode);
+        data = [{
+          source: {
+            x: selectedNode.x0,
+            y: selectedNode.y0
+          },
+          target: {
+            x: draggingNode.x0,
+            y: draggingNode.y0
+          }
+        }];
+      }
+      me._handleTempLink(data);
+
+    },
+
+    _handleTempLink: function(data) {
+      var me = this,
+        d3Content = d3.select(this.$.content),
+        // d3Viz = me.getD3('viz'),
+        link = d3Content.selectAll('.templink').data(data),
+        activeLayout = me.getActiveLayout(),
+        pathFn = activeLayout.layout.updateLink;
+
+
+      link.enter().append('path')
+        .attr('class', 'templink')
+        .attr('d', pathFn)
+        .attr('pointer-events', 'none');
+
+      link.attr('d', me.pathFn);
+
+      link.exit().remove();
+    },
+
+    nodeGhost: function(nodeEnter) {
+      var ghost = nodeEnter.append('circle')
+        .attr('class', 'ghostCircle')
+        .attr('r', 30)
+        .attr('opacity', 0.2) // change this to zero to hide the target area
+        // .attr('fill', 'red')
+        //.attr('pointer-events', 'mouseover');
+      this._setGhostBehavior(ghost)
+    },
+
+    _setGhostBehavior: function(sel) {
+      var me = this,
+        overCircle = function(d) {
+          me.set('selectedNode', d);
+          d3.select(this).attr('opacity', 0.4);
+          me._callOnDrag();
+        },
+        outCircle = function() {
+          // me.__selectedNode = null;
+          me.set('selectedNode', null);
+          d3.select(this).attr('opacity', 0.2);
+          me._callOnDrag();
+        };
+
+      sel.on('mouseover', overCircle)
+        .on('mouseout', outCircle);
+    },
+    centerNode: function() {
+
+    },
+
+    attached: function() {
+      this._initiateDragListener();
+    },
+
+    detached: function() {
+      this._dragListener = null;
+    }
+
+
+
+
+  };
+
+})();
+</script>

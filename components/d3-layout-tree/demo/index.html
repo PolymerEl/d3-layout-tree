@@ -1,0 +1,62 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>d3-layout-tree Demo</title>
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../d3-layout-tree.html">
+  <link rel="import" href="../../paper-dropdown-menu/paper-dropdown-menu.html">
+  <link rel="import" href="../../paper-listbox/paper-listbox.html">
+  <link rel="import" href="../../paper-item/paper-item.html">
+  <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
+  
+  <style is="custom-style">
+  .svg-container {
+    height: 265px;
+  }
+  
+  d3-layout-tree {
+    --d3-layout-primary-color: steelblue;
+    --d3-layout-ghost-color:  #0054A7;
+  }
+  </style>
+</head>
+
+<body>
+  <div class="vertical-section-container centered">
+    <h3>An example of <code>&lt;d3-layout-tree&gt;</code>:</h3>
+    <demo-snippet class="centered-demo">
+      <p>zoom level</p>
+      <template>
+        <template is="dom-bind">
+          <paper-slider step="0.01" min="0.1" max="2" immediate-value="1" value="{{scale}}"></paper-slider>
+          <p text-content$="{{layout}}">{{layout}}</p>
+          <paper-dropdown-menu label="layout type" value="{{layout}}" >
+            <paper-listbox attr-for-selected="id" class="dropdown-content" selected="cluster">
+              <paper-item id="tree">tree</paper-item>
+              <paper-item id="tree-radial">tree-radial</paper-item>
+              <paper-item id="cluster">cluster</paper-item>
+              <paper-item id="cluster-radial">cluster-radial</paper-item>
+              
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <div class="svg-container">
+            <d3-layout-tree scale="{{scale}}" layout="{{layout}}"></d3-layout-tree>
+          </div>
+        </template>
+      </template>
+    </demo-snippet>
+  </div>
+
+</html>

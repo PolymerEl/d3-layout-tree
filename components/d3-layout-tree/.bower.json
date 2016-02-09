@@ -1,0 +1,46 @@
+{
+  "name": "d3-layout-tree",
+  "authors": [
+    "christophe.geiser <christophe.geiser@e-smile.org>"
+  ],
+  "description": "A polymer element for displaying a tree layout.",
+  "keywords": [
+    "web-component",
+    "web-components",
+    "d3",
+    "d3.js",
+    "SVG",
+    "polymer",
+    "seed"
+  ],
+  "main": "d3-layout-tree.html",
+  "license": "http://polymer.github.io/LICENSE.txt",
+  "homepage": "http://polymerel.github.io/d3-layout-tree/components/d3-layout-tree/",
+  "ignore": [
+    "/.*",
+    "/test/",
+    "/demo/"
+  ],
+  "dependencies": {
+    "polymer": "PolymerEl/polymer#ed15615b63414f25e9591ce08df36e096e2426c2",
+    "d3-element": "PolymerEl/d3-element",
+    "paper-elements": "PolymerElements/paper-elements#^1.0.1",
+    "paper-material": "polymerelements/paper-material#^1.0.0",
+    "paper-behaviors": "polymerelements/paper-behaviors#^1.0.0",
+    "iron-demo-helpers": "polymerelements/iron-demo-helpers#^1.0.0"
+  },
+  "devDependencies": {
+    "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
+    "web-component-tester": "*"
+  },
+  "_release": "697b0f7049",
+  "_resolution": {
+    "type": "branch",
+    "branch": "master",
+    "commit": "697b0f7049a04a776262c1e5fa21750f0d48ff45"
+  },
+  "_source": "git://github.com/PolymerEl/d3-layout-tree.git",
+  "_target": "master",
+  "_originalSource": "PolymerEl/d3-layout-tree",
+  "_direct": true
+}

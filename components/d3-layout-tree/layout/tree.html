@@ -1,0 +1,67 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../polymer/polymer.html">
+<link rel="import" href="../../d3-element/d3-element.html">
+<link rel="import" href="layout-behavior.html">
+<link rel="import" href="../coordinate/cartesian-behavior.html">
+<!--
+
+-->
+<dom-module id="layout-tree">
+</dom-module>
+<script>
+(function() {
+  'use strict';
+
+  Polymer({
+
+    is: 'layout-tree',
+
+    properties: {
+      /**
+       * `layout` - the d3 layout to use for the behavior. 
+       */
+      layout: {
+        type: Object,
+
+        value: function() {
+          return d3.layout.tree();
+          // .size([this.width, this.height])
+          ;
+        }
+      },
+
+      height: {
+        type: Number,
+        value: 300
+      },
+
+      width: {
+        type: Number,
+        value: 300
+      }
+    },
+    observers: ['_setLayoutSize(layout, width, height)'], // defined in Cartesian
+    // ready: function() {
+    //     // var layout = d3.layout.tree()
+    //   // this.set('layout', )
+    // }
+
+
+    // _setLayoutSize: function(width, height) {
+    //   if (this.layout) {
+    //     this.layout.size([width, height]);
+    //   }
+    // },
+    behaviors: [MyBehaviors.layout.Base, MyBehaviors.coordinate.Cartesian]
+
+  });
+})();
+</script>
