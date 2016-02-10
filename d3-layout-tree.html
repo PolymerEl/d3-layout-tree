@@ -84,14 +84,18 @@ and `d3-enable-zoom` declared as
     @apply(--d3-layout-entity);
   }
   
+  #svg::content .node.selected .entity {
+    stroke: var(--d3-layout-selected-color, --dark-accent-color);
+    stroke-width: 4px;
+  }
+  
   #svg::content .entity.hasChildren {
     /*fill: #fff;*/
-    
     fill: var(--d3-layout-light-color, --light-primary-color);
     @apply(--d3-layout-entity-children);
     /* stroke-width: 3px; */
   }
-
+  
   #svg::content .node text {
     font: 12px sans-serif;
     @apply(--d3-layout-text);
@@ -145,6 +149,13 @@ and `d3-enable-zoom` declared as
         value: function() {
           return [];
         }
+      },
+
+      multiSelect: {
+        type: Boolean,
+        value: true,
+        notify: true,
+        observer: '_multiSelectChange'
       },
 
       layout: {
@@ -224,6 +235,78 @@ and `d3-enable-zoom` declared as
       MyBehaviors.svg.Tag, MyBehaviors.svg.NodeDrag, MyBehaviors.layout.Hierarchy
     ],
 
+    listeners: {
+      // 'content.tap': '_onTap',
+      // 'nodemoved': '_onNodeMoved',
+      'nodeselect': 'selectNode',
+      'nodedeselect': 'deselectNode'
+    },
+
+    selectNode: function(node, dom) { // called by firing the select event
+      if (node.detail && node.detail.node) {
+        dom = node.detail.dom;
+        node = node.detail.node;
+      }
+
+      if (node instanceof Array) {
+        if (this.multiSelect) {
+          node = node[0];
+        } else {
+          return node.forEach(this.nodeSelect, this)
+        }
+      }
+      var index = this.selected.indexOf(node);
+
+      if (index < 0) {
+        if (!this.multiSelect) {
+          this.splice('selected', 0);
+        }
+        node.__selected__ = true;
+        this.push('selected', node);
+        if (!dom) {
+          dom = this.getNode(d);
+        }
+        d3.select(dom).classed('selected', true)
+      }
+    },
+
+    deselectNode: function(node, dom) {
+      if (node.detail && node.detail.node) { // called by firing the select event
+        dom = node.detail.dom;
+        node = node.detail.node;
+      }
+      if (node instanceof Array) {
+        return node.forEach(this.nodeDeselect, this)
+      }
+      var index = this.selected.indexOf(node);
+      if (index > -1) {
+        delete node.__selected__;
+        this.splice('selected', index, 1);
+        if (!dom) {
+          dom = this.getNode(d);
+        }
+        d3.select(dom).classed('selected', false)
+      }
+    },
+
+    getNode: function(d) {
+      var id = d.id || d
+      return d3.select(this.$.content).select('[_id=' + id + ']');
+    },
+
+    _multiSelectChange: function(multiSelect) {
+      if (multiSelect && this.selected.length > 0) {
+        this.slice('selected', 1);
+      }
+    },
+    // _onTap: function() {
+    //   console.info("TAP", this);
+    // },
+
+    // _onNodeMoved: function(e) {
+    //   console.info("MOVED", e);
+    // },
+
     _layoutChanged: function(layout) {
       // re-compute layout object
       if (layout) {
@@ -255,10 +338,10 @@ and `d3-enable-zoom` declared as
       }
 
       var layout = this.getActiveLayout();
-      
+
       var duration = this.duration,
-          name = this.childrenName,
-          _name = '__' + name;
+        name = this.childrenName,
+        _name = '__' + name;
 
 
       var currentLayout = layout.layout;
@@ -288,8 +371,17 @@ and `d3-enable-zoom` declared as
         // Enter any new nodes at the parent's previous position.
         var nodeEnter = node.enter().append('g')
           .call(me._dragListener)
-          .attr('class', 'node')
-          .attr('transform', layout.enter(source))
+          .attr({
+            _id: function(d) {
+              return d.id
+            },
+            class: function(d) {
+              return (d.__selected__ ? 'selected ' : '') + ' node'
+            },
+            transform: layout.enter(source)
+          })
+          // .attr('class', 'node')
+          // .attr('transform', )
           .on('click', click)
 
         // this.nodeGhost(nodeEnter);
@@ -301,9 +393,9 @@ and `d3-enable-zoom` declared as
           .classed('hasChildren', function(d) {
             return !!d[_name];
           });
-          // .style('fill', function(d) {
-          //   return d._children ? 'lightsteelblue' : '#fff';
-          // });
+        // .style('fill', function(d) {
+        //   return d._children ? 'lightsteelblue' : '#fff';
+        // });
 
         this.nodeGhost(nodeEnter);
 
@@ -327,13 +419,13 @@ and `d3-enable-zoom` declared as
 
         nodeUpdate.select('circle.entity')
           .attr('r', 10)
-          .each('start', function(d){
+          .each('start', function(d) {
             d3.select(this)
               .classed('hasChildren', !!d[_name])
           });
-          // .classed('hasChildren', function(d) {
-          //   return !!d._children;
-          // });
+        // .classed('hasChildren', function(d) {
+        //   return !!d._children;
+        // });
 
         nodeUpdate.select('text')
           .style('fill-opacity', 1);
@@ -381,7 +473,14 @@ and `d3-enable-zoom` declared as
       }
 
       // Toggle children on click.
+      // or select if ctrl is on
       function click(d) {
+        if (d3.event.ctrlKey) {
+          return me.fire(d.__selected__ ? 'nodedeselect' : 'nodeselect', {
+            node: d,
+            dom: this
+          })
+        }
         var c;
         if (c = d[name]) {
           d[_name] = c;
@@ -390,7 +489,7 @@ and `d3-enable-zoom` declared as
           d[name] = d[_name];
           d[_name] = null;
         }
-        
+        // d.__selected = !d.__selected
         me._updateDraw(d);
         // update(d);
       }

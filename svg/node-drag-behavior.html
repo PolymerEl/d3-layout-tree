@@ -176,6 +176,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           draggingNode = me.draggingNode;
           if (selectedNode) {
             var index = draggingNode.parent[name].indexOf(draggingNode);
+            var parent, oldParent = draggingNode.parent;
             if (index > -1) {
               draggingNode.parent[name].splice(index, 1);
             }
@@ -192,9 +193,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             // Make sure that the node being added to is expanded so user can see added node is correctly moved
             me.expand(selectedNode);
             // sortTree();
+            me.fire('nodemoved', {node: draggingNode, parent: selectedNode, oldParent: oldParent });
             endDrag(selectedNode);
 
-            me.fire('d3dragend', me, draggingNode, selectedNode);
           }
           endDrag(d);
         });

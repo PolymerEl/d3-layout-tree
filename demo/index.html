@@ -41,7 +41,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <template>
         <template is="dom-bind">
           <paper-slider step="0.01" min="0.1" max="2" immediate-value="1" value="{{scale}}"></paper-slider>
-          <p text-content$="{{layout}}">{{layout}}</p>
+          <!-- <p text-content$="{{layout}}">{{layout}}</p> -->
+          <template is="dom-repeat" items="[[selected]]">
+              <div>selected: {{item.name}}</div>
+          </template>
           <paper-dropdown-menu label="layout type" value="{{layout}}" >
             <paper-listbox attr-for-selected="id" class="dropdown-content" selected="cluster">
               <paper-item id="tree">tree</paper-item>
@@ -52,7 +55,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </paper-listbox>
           </paper-dropdown-menu>
           <div class="svg-container">
-            <d3-layout-tree scale="{{scale}}" layout="{{layout}}"></d3-layout-tree>
+            <d3-layout-tree scale="{{scale}}" selected="{{selected}}" layout="{{layout}}"></d3-layout-tree>
           </div>
         </template>
       </template>
