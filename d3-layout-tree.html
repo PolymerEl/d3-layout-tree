@@ -21,6 +21,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <!-- <link rel="import" href="coordinate/cartesian-behavior.html"> -->
 <!-- <link rel="import" href="coordinate/polar-behavior.html"> -->
 <link rel="import" href="d3-enable-zoom.html">
+<link rel="import" href="d3-enable-brushable.html">
 <link rel="import" href="svg/tag-behavior.html">
 <link rel="import" href="svg/node-drag-behavior.html">
 <!-- <link rel="import" href="test-circle.html"> -->
@@ -117,18 +118,24 @@ and `d3-enable-zoom` declared as
     display: none;
     fill: var(--d3-layout-ghost-color, --dark-accent-color);
   }
+  
+  #svg::content .brush .extent {
+    stroke: #fff;
+    fill-opacity: .225;
+    shape-rendering: crispEdges;
+  }
   </style>
   <template>
     <layout-tree id="tree"></layout-tree>
     <layout-tree-radial id="tree-radial"></layout-tree-radial>
     <layout-cluster id="cluster"></layout-cluster>
     <layout-cluster-radial id="cluster-radial"></layout-cluster-radial>
-    <svg id="svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="100%" width="100%" min-height="100%" viewBox$="{{viewBox}}">
-      <g is="d3-enable-zoom" scale="{{scale}}">
+    <svg id="svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="100%" width="100%" min-height="100%">
+      <g is="d3-enable-zoom" id="zoom" scale="{{scale}}">
         <!-- <g is="test-circle" /> -->
         <g id="content">
         </g>
-        <g is="d3-enable-brush" class="d3-brush"></g>'
+        <g is="d3-enable-brush" id="brush" nodes="[[nodes]]" class="brush"></g>'
       </g>
     </svg>
   </template>
@@ -150,6 +157,11 @@ and `d3-enable-zoom` declared as
           return [];
         }
       },
+      // viewBox: {
+      //   type: String,
+      //   value: '0 0 100 100'
+      //     // observer: '_viewBoxChange'
+      // },
 
       multiSelect: {
         type: Boolean,
@@ -164,6 +176,11 @@ and `d3-enable-zoom` declared as
         notify: true,
         observer: '_layoutChanged'
       },
+
+      // d3Layout: {
+      //   type: Object,
+      //   readonly: true
+      // }
 
       duration: {
         type: Number,
@@ -224,6 +241,16 @@ and `d3-enable-zoom` declared as
         }]
       },
 
+      nodes: {
+        type: Array,
+        readOnly: true
+      },
+
+      links: {
+        type: Array,
+        readOnly: true
+      }
+
       // layoutType: {
       //   type: String,
       //   value: 'tree',
@@ -239,7 +266,16 @@ and `d3-enable-zoom` declared as
       // 'content.tap': '_onTap',
       // 'nodemoved': '_onNodeMoved',
       'nodeselect': 'selectNode',
-      'nodedeselect': 'deselectNode'
+      'nodedeselect': 'deselectNode',
+      'zoom.tap' : '_onZoomTap'
+    },
+
+    _onZoomTap : function(e) {
+      if(e.detail.sourceEvent.ctrlKey) {
+        this.$.brush.active = !this.$.brush.active;
+      }
+
+      // console.info('ONZOOM-2');
     },
 
     selectNode: function(node, dom) { // called by firing the select event
@@ -264,9 +300,9 @@ and `d3-enable-zoom` declared as
         node.__selected__ = true;
         this.push('selected', node);
         if (!dom) {
-          dom = this.getNode(d);
+          dom = this.getNode(node);
         }
-        d3.select(dom).classed('selected', true)
+        (dom.classed ? dom : d3.select(dom)).classed('selected', true)
       }
     },
 
@@ -283,15 +319,16 @@ and `d3-enable-zoom` declared as
         delete node.__selected__;
         this.splice('selected', index, 1);
         if (!dom) {
-          dom = this.getNode(d);
+          dom = this.getNode(node);
         }
-        d3.select(dom).classed('selected', false)
+
+        (dom.classed ? dom : d3.select(dom)).classed('selected', false)
       }
     },
 
     getNode: function(d) {
       var id = d.id || d
-      return d3.select(this.$.content).select('[_id=' + id + ']');
+      return d3.select(this.$.content).select('[_id="' + id + '"]');
     },
 
     _multiSelectChange: function(multiSelect) {
@@ -357,6 +394,9 @@ and `d3-enable-zoom` declared as
         // Compute the new tree layout.
         var nodes = currentLayout.nodes(root).reverse(),
           links = currentLayout.links(nodes);
+
+        this._setLinks(links);
+        this._setNodes(nodes);
 
         if (currentLayout.normalize) {
           nodes.forEach(currentLayout.normalize(d));
@@ -501,6 +541,7 @@ and `d3-enable-zoom` declared as
     },
 
     attached: function() {
+      console.info("attached");
       // `attached` fires once the element and its parents have been inserted
       // into a document.
       //
@@ -509,6 +550,8 @@ and `d3-enable-zoom` declared as
       // loading resources, etc).
       // this.initZoom();
       this.draw();
+      // this.async(this.$.brush.init, 200);
+
     },
 
     detached: function() {
@@ -517,6 +560,7 @@ and `d3-enable-zoom` declared as
       //
       // Use this to clean up anything you did in `attached`.
       this._updateDraw = this._root = null;
+      // this.$.brush.clear()
     }
 
   });

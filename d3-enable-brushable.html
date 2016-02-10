@@ -39,93 +39,101 @@ An element for enabling zooming of content
        */
       active: {
         type: Boolean,
-        value: true,
-        observer: '_activeChange(active)'
+        value: false,
+        observer: '_activeChange'
+      },
+      brush: {
+        type: Object,
+        readOnly: true
+      },
+      nodes: {
+        type: Array
+        // readOnly: true
       }
-      /**
-       * `selected`, an array storing nodes selected by the brush quadtree
-       */
-      // selected: {
-      //   type: Array,
-      //   notify: true,
-      //   value: function() {
-      //     return [];
-      //   }
-      // }
     },
-    // observers: [
-    //   '_tranformChanged(translate,scale)'
-    // ],
+
 
     attached: function() {
-      this._initBrush();
+      // this.init()
+        // this.async(this.init, 200);
+        // this._initBrush();
     },
 
     detached: function() {
-      this._clearBrush();
-      this.brush = null;
-    },
-
-    // getNodes: function() {
-    //   //virtual
-    //   console.error('getNodes need to be overriden');
-    // },
-
-    getPoints: function() {
-      //virtual
-      console.error('getPoints need to be overriden');
+      this.clear();
+      // this.brush = null;
     },
 
     _activeChange: function(active) {
+      // if (!this.brush) {
+      //   return;
+      // }
+      d3.select(this.$.brush).style({display: active ? null: 'none'});
       if (active) {
-        this._resetBrushSize();
+        this.init()
+        // this._resetBrushSize();
       } else {
-        this._clearBrush();
+        this.clear();
       }
     },
 
-    _clearBrush: function() {
+    clear: function() {
       if (this.brush) {
-        d3.select(this.$.brush).call(brush.clear);
+        this.brush.clear();
+        this.nodes.forEach(function(d) {
+          delete d.__quadSelected__;
+          delete d.__quadWasSelected__;
+          // d.__quadSelected__ = d.__quadWasSelected__ = null;
+        });
       }
     },
 
-    _initBrush: function() {
+    init: function() {
       var d3Brush = d3.select(this.$.brush),
         me = this,
         quad;
 
-      var brush = this.brush = d3.svg.brush() // we keep the brush to be able to properly clear it
+      var brush = d3.svg.brush() // we keep the brush to be able to properly clear it
         .on('brushstart', brushstarted)
         .on('brush', brushed);
 
-      this._resetBrushSize(brush);
+      this._setBrush(brush);
+
+      this._resetBrushSize();
+      var nodes = this.nodes;
+
 
       d3Brush
         .call(brush)
         .call(brush.event);
 
-      var nodes = this.getActiveLayout().nodes();
 
       function brushed() {
         if (!d3.event.sourceEvent) {
           return;
         } // only transition after input
         var extent = brush.extent();
-        nodes.each(function(d) {
-          d.quadWasSelected = d.quadSelected;
-          d.quadSelected = false;
+        console.info("nodes: ", nodes.length);
+        nodes.forEach(function(d) {
+          d.__quadWasSelected__ = d.__quadSelected__ || d.__selected__;
+          d.__quadSelected__ = false;
         });
         // search(me.getQuadtree(), extent[0][0], extent[0][1], extent[1][0], extent[1][1]);
         search(quad, extent[0][0], extent[0][1], extent[1][0], extent[1][1]);
-        nodes.each(function(d) {
-          if (d.quadSelected) {
-            me.selectNode(d)
-            // me.push('selected', d);
+        nodes.forEach(function(d) {
+          if (d.__quadSelected__) {
+            me.fire('nodeselect', {
+                node: d
+              })
+              // me.selectNode(d)
+              // me.push('selected', d);
           }
-          if (d.quadWasSelected && !d.quadSelected) {
-            me.deselectNode(d)
-            // me.slice('selected', me.selected.indexOf(d), 1);
+          if (d.__quadWasSelected__ && !d.__quadSelected__) {
+            me.fire('nodedeselect', {
+                node: d
+              })
+              // me.deselectNode(d)
+              // me.slice('selected', me.selected.indexOf(d), 1);
           }
           return false;
         });
@@ -144,7 +152,7 @@ An element for enabling zooming of content
           }) // x and y anre invered in the classecal layout
           .y(function(d) {
             return d.x;
-          // })(me.getPoints());
+            // })(me.getPoints());
           })(nodes);
       }
 
@@ -153,7 +161,7 @@ An element for enabling zooming of content
         quadtree.visit(function(node, x1, y1, x2, y2) {
           var p = node.point;
           if (p) {
-            p.quadSelected = (p.y >= x0) && (p.y < x3) && (p.x >= y0) && (p.x < y3);
+            p.__quadSelected__ = (p.y >= x0) && (p.y < x3) && (p.x >= y0) && (p.x < y3);
           }
           return x1 >= x3 || y1 >= y3 || x2 < x0 || y2 < y0;
         });
@@ -162,12 +170,13 @@ An element for enabling zooming of content
 
     _resetBrushSize: function() {
       // we would need to call this 
-      var viewBox = this.viewBox.baseVal,
+      var owner = this.ownerSVGElement,
+        viewBox = owner.viewBox.baseVal,
         width = viewBox.width,
         height = viewBox.height,
         point, owner, x0, x1, y0, y1, m;
 
-      owner = this.ownerSVGElement;
+
       point = owner.createSVGPoint();
       m = owner.getTransformToElement(this.$.brush);
 

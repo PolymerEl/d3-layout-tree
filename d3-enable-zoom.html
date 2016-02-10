@@ -54,6 +54,14 @@ An element for enabling zooming of content
       '_tranformChanged(translate,scale)'
     ],
 
+    listeners : {
+      'zoom.tap' : '_onZoomTab'
+    },
+
+    _onZoomTab : function() {
+      console.info('ONZOOM');
+    },
+
     attached: function() {
       this._initZoom();
     },

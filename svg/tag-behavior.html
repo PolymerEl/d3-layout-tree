@@ -30,19 +30,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         observer: '_tabIndexChange'
       },
 
+      testId: {
+        type: String,
+        value: 123
+      },
+
       /**
        * `viewBox` for svg 
        */
-      viewBox: {
+      _viewBox: {
         type: String,
-        value: '0 0 600 600'
-          // observer: '_viewBoxChange'
+        value: '0 0 400 400',
+        observer: '_viewBoxChanged'
       }
     },
     ready: function() {
       if (!this.$.svg) {
         console.error('an svg element has to be defined for this behavior');
       }
+    },
+
+    _viewBoxChanged: function(viewBox) {
+      this.$.svg.setAttribute('viewBox', viewBox) // we have problems to bind to viewBox because of the upper case 'B'
     },
 
     _tabIndexChange: function(tabindex) {
