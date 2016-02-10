@@ -74,6 +74,14 @@ and `d3-enable-zoom` declared as
     /*box-sizing: border-box;*/
   }
   
+  #svg::content {
+    background: var(--d3-background-color, ---primary-background-color);
+  }
+  
+  #svg::content rect.zoom {
+    fill: var(--d3-background-color, ---primary-background-color);
+  }
+  
   #svg::content .node {
     cursor: pointer;
   }
@@ -99,6 +107,7 @@ and `d3-enable-zoom` declared as
   
   #svg::content .node text {
     font: 12px sans-serif;
+    fill: var(--d3-layout-text-color, --secondary-text-color);
     @apply(--d3-layout-text);
   }
   
@@ -121,15 +130,16 @@ and `d3-enable-zoom` declared as
   
   #svg::content .brush .extent {
     stroke: #fff;
+    stroke-width: 1px;
     fill-opacity: .225;
-    shape-rendering: crispEdges;
+    /*shape-rendering: crispEdges;*/
   }
   </style>
   <template>
-    <layout-tree id="tree"></layout-tree>
-    <layout-tree-radial id="tree-radial"></layout-tree-radial>
-    <layout-cluster id="cluster"></layout-cluster>
-    <layout-cluster-radial id="cluster-radial"></layout-cluster-radial>
+    <layout-tree height="[[height]]" width="[[width]]" id="tree"></layout-tree>
+    <layout-tree-radial diameter="[[diameter]]" id="tree-radial"></layout-tree-radial>
+    <layout-cluster height="[[height]]" width="[[width]]" id="cluster"></layout-cluster>
+    <layout-cluster-radial diameter="[[diameter]]" id="cluster-radial"></layout-cluster-radial>
     <svg id="svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="100%" width="100%" min-height="100%">
       <g is="d3-enable-zoom" id="zoom" scale="{{scale}}">
         <!-- <g is="test-circle" /> -->
@@ -149,7 +159,9 @@ and `d3-enable-zoom` declared as
     is: 'd3-layout-tree',
 
     properties: {
-
+      /**
+       * the `selected` nodes (crtl + click or use brush for selecting noddes)
+       */
       selected: {
         type: Array,
         notify: true,
@@ -157,12 +169,10 @@ and `d3-enable-zoom` declared as
           return [];
         }
       },
-      // viewBox: {
-      //   type: String,
-      //   value: '0 0 100 100'
-      //     // observer: '_viewBoxChange'
-      // },
 
+      /**
+       * when `multiSelect` is false, only one node ca be selected. 
+       */
       multiSelect: {
         type: Boolean,
         value: true,
@@ -170,6 +180,9 @@ and `d3-enable-zoom` declared as
         observer: '_multiSelectChange'
       },
 
+      /**
+       * active `layout`, one of 'tree', 'cluster', 'tree-radial' or 'cluster-radial'. Radial clusteres implement polar coordinates
+       */
       layout: {
         type: String,
         value: 'tree',
@@ -177,11 +190,9 @@ and `d3-enable-zoom` declared as
         observer: '_layoutChanged'
       },
 
-      // d3Layout: {
-      //   type: Object,
-      //   readonly: true
-      // }
-
+      /**
+       * `duration` for layout transitions (change of layout and node collapse)
+       */
       duration: {
         type: Number,
         value: 700,
@@ -241,21 +252,35 @@ and `d3-enable-zoom` declared as
         }]
       },
 
+      /**
+       * `nodes` computed by the layout
+       */
       nodes: {
         type: Array,
         readOnly: true
       },
 
+      /**
+       * `links` computed by the layout
+       */
       links: {
         type: Array,
         readOnly: true
+      },
+
+      height: {
+        type: Number
+      },
+
+      width: {
+        type: Number
+      },
+
+      diameter: {
+        type: Number,
+        computed: '_computeDiameter(width, height)'
       }
 
-      // layoutType: {
-      //   type: String,
-      //   value: 'tree',
-      //   observer: '_layoutTypeChanged'
-      // }
     },
 
     behaviors: [
@@ -267,17 +292,24 @@ and `d3-enable-zoom` declared as
       // 'nodemoved': '_onNodeMoved',
       'nodeselect': 'selectNode',
       'nodedeselect': 'deselectNode',
-      'zoom.tap' : '_onZoomTap'
+      'zoom.tap': '_onZoomTap'
     },
 
-    _onZoomTap : function(e) {
-      if(e.detail.sourceEvent.ctrlKey) {
+    _onZoomTap: function(e) {
+      if (e.detail.sourceEvent.ctrlKey) {
         this.$.brush.active = !this.$.brush.active;
       }
-
-      // console.info('ONZOOM-2');
     },
 
+    _computeDiameter: function(width, height) {
+        return Math.min(width, height);
+      },
+
+      /**
+       * `selectNode` select a new node
+       * @param node - the node to select
+       * @param dom - dom representing the node
+       */
     selectNode: function(node, dom) { // called by firing the select event
       if (node.detail && node.detail.node) {
         dom = node.detail.dom;
@@ -306,6 +338,11 @@ and `d3-enable-zoom` declared as
       }
     },
 
+    /**
+     * `selectNode` select a new node
+     * @param node - the node to select
+     * @param dom - dom representing the node
+     */
     deselectNode: function(node, dom) {
       if (node.detail && node.detail.node) { // called by firing the select event
         dom = node.detail.dom;
@@ -325,7 +362,10 @@ and `d3-enable-zoom` declared as
         (dom.classed ? dom : d3.select(dom)).classed('selected', false)
       }
     },
-
+    /**
+     * `getNode` returns a d3.selection of the node (based on node identity)
+     * @param d - data for thenode
+     */
     getNode: function(d) {
       var id = d.id || d
       return d3.select(this.$.content).select('[_id="' + id + '"]');
@@ -336,13 +376,6 @@ and `d3-enable-zoom` declared as
         this.slice('selected', 1);
       }
     },
-    // _onTap: function() {
-    //   console.info("TAP", this);
-    // },
-
-    // _onNodeMoved: function(e) {
-    //   console.info("MOVED", e);
-    // },
 
     _layoutChanged: function(layout) {
       // re-compute layout object
@@ -359,11 +392,16 @@ and `d3-enable-zoom` declared as
 
     },
 
-    // Element Lifecycle
+    /**
+     * `getActiveLayout` returns the layout currently applied
+     */
     getActiveLayout: function() {
       return this.$[this.layout];
     },
 
+    /**
+     * `draw` the layout
+     */
     draw: function() {
 
       var data = this.data,
@@ -549,7 +587,13 @@ and `d3-enable-zoom` declared as
       // visual state or active behavior (measuring sizes, beginning animations,
       // loading resources, etc).
       // this.initZoom();
+      if(!this.width || !this.height)  {
+        var rect = this.getBoundingClientRect();
+        this.width = rect.width;
+        this.height = rect.height;
+      }
       this.draw();
+
       // this.async(this.$.brush.init, 200);
 
     },

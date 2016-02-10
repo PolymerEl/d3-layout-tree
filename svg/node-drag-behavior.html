@@ -30,11 +30,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       selectedNode: {
         type: Object,
-        notify: true
+        notify: true,
+        readOnly: true
       },
       draggingNode: {
         type: Object,
-        notify: true
+        notify: true,
+        readOnly: true
       }
     },
 
@@ -66,7 +68,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       function initiateDrag(d, domNode) {
         draggingNode = d;
-        me.set('draggingNode', d);
+        me._setDraggingNode(d);
         d3.select(domNode).attr('pointer-events', 'none');
         //d3.select(domNode).select('.ghostCircle').attr('pointer-events', 'none');
         d3Content.selectAll('.ghostCircle').classed('show', true);
@@ -116,7 +118,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       function endDrag(d) {
-        me.set('selectedNode', null);
+        me._setSelectedNode(null);
         d3Content.selectAll('.ghostCircle').classed('show', false);
         d3.select(domNode).classed('activeDrag', false);
 
@@ -126,7 +128,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (me.draggingNode !== null) {
           me._updateDraw(d);
           me.centerNode(draggingNode);
-          draggingNode = me.draggingNode = null;
+          me._setDraggingNode(null);
+          draggingNode = null;
         }
       }
 
@@ -261,13 +264,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     _setGhostBehavior: function(sel) {
       var me = this,
         overCircle = function(d) {
-          me.set('selectedNode', d);
+          me._setSelectedNode(d);
           d3.select(this).attr('opacity', 0.4);
           me._callOnDrag();
         },
         outCircle = function() {
           // me.__selectedNode = null;
-          me.set('selectedNode', null);
+          me._setSelectedNode(null);
+          // me.set('selectedNode', null);
           d3.select(this).attr('opacity', 0.2);
           me._callOnDrag();
         };

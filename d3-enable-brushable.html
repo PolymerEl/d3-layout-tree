@@ -42,10 +42,17 @@ An element for enabling zooming of content
         value: false,
         observer: '_activeChange'
       },
+      /**
+       * exposing the is the d3.svg.brush Object.
+       */
       brush: {
         type: Object,
         readOnly: true
       },
+
+      /**
+       * `nodes` to be used for calculating the brush quadtree.
+       */
       nodes: {
         type: Array
         // readOnly: true
@@ -132,8 +139,6 @@ An element for enabling zooming of content
             me.fire('nodedeselect', {
                 node: d
               })
-              // me.deselectNode(d)
-              // me.slice('selected', me.selected.indexOf(d), 1);
           }
           return false;
         });

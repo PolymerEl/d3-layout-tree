@@ -13,11 +13,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <!--
 An element for enabling zooming of content
 
+It listent to d3.zoom event and adjust `scale` and `transform` factor accordingly
+
 @demo
 -->
 <dom-module id="d3-enable-zoom">
   <template>
-    <rect id="zoom" class="zoom" data-prevent-focus="true" width="200%" height="200%" x="-50%" y="-50%" fill="#fff"></rect>'
+    <rect id="zoom" class="zoom" data-prevent-focus="true" width="200%" height="200%" x="-50%" y="-50%" ></rect>'
     <g id="zoomGroup" class="zoomGroup">
       <content></content>
     </g>
@@ -31,43 +33,54 @@ An element for enabling zooming of content
 
     is: 'd3-enable-zoom',
 
-    extends: 'g',
-    namespace: 'http://www.w3.org/2000/svg',
-
     properties: {
+      /**
+       * `scale` scale value applied to the zoomGroup. 
+       */
       scale: {
         type: Number,
         value: 1,
         notify: true
       },
+      /**
+       * `translate` translate value applied to the zoomGroup. 
+       */
       translate: {
         type: Array,
         value: [0, 0]
       },
+      /**
+       * `scaleExtent` [min, max] allowed scale
+       */
       scaleExtent: {
         type: Array,
         value: [0.1, 10],
         observer: '_scaleExtentChange'
       }
     },
+    
+    extends: 'g',
+
+    namespace: 'http://www.w3.org/2000/svg',
+
     observers: [
       '_tranformChanged(translate,scale)'
     ],
 
-    listeners : {
-      'zoom.tap' : '_onZoomTab'
-    },
+    // listeners : {
+    //   'zoom.tap' : '_onZoomTab'
+    // },
 
-    _onZoomTab : function() {
-      console.info('ONZOOM');
-    },
+    // _onZoomTab : function() {
+    //   console.info('ONZOOM');
+    // },
 
     attached: function() {
       this._initZoom();
     },
 
     detached: function() {
-      this.zoom = this.__isZooming = this.__isTransforming = null;
+      this.__zoom = this.__isZooming = this.__isTransforming = null;
     },
 
     _tranformChanged: function(translate, scale) {
@@ -77,8 +90,8 @@ An element for enabling zooming of content
     },
 
     _scaleExtentChange: function(scaleExtent) {
-      if (this.zoom) {
-        this.zoom.scaleExtent(scaleExtent);
+      if (this.__zoom) {
+        this.__zoom.scaleExtent(scaleExtent);
       }
     },
 
@@ -94,9 +107,9 @@ An element for enabling zooming of content
       this.set('translate', translate);
       this.__isZooming = false;
 
-      if (this.zoom) {
-        this.zoom.translate(translate);
-        this.zoom.scale(scale);
+      if (this.__zoom) {
+        this.__zoom.translate(translate);
+        this.__zoom.scale(scale);
       }
     },
 
@@ -104,7 +117,7 @@ An element for enabling zooming of content
       var groupZoom = d3.select(this.$.zoomGroup),
         me = this;
 
-      me.zoom = d3.behavior.zoom()
+      this.__zoom = d3.behavior.zoom()
         .scaleExtent(me.scaleExtent)
         .on("zoom", onZoom);
 
@@ -114,7 +127,7 @@ An element for enabling zooming of content
         me._zoomHandler(d3.event.translate, d3.round(d3.event.scale, 2));
       }
 
-      d3.select(this.$.zoom).call(me.zoom);
+      d3.select(this.$.zoom).call(this.__zoom);
     }
 
   });
