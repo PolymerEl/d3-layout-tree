@@ -26,43 +26,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="svg/node-drag-behavior.html">
 <!-- <link rel="import" href="test-circle.html"> -->
 <!--
-An element displaying a d3 tree layout
+An element displaying a d3 hieradchy layout (tree and cluster)  in cartesian or polar coordinate
 
-It is mainly a test for polymer svg capabilities and first go at allowing custom elements to be defined in other namespaces than html.
+### Styling
 
-This allows to declare template like (note **`<g is="d3-enable-zoom">`**):  
-```html
- <template>
-    <h2>Testing bindings</h2>
-    <p>opacity</p>
-    <paper-slider step="0.1" min="0" max="1" value="{{opacity}}"></paper-slider>
-    <svg id="svg" width="900" height="450">
-      <g is="d3-enable-zoom" test="here we go" opacity="[[opacity]]">
-        <g id="content"></g>
-      </g>
-    </svg>
-  </template>
-```
-and `d3-enable-zoom` declared as 
-```html
-<dom-module id="d3-enable-zoom">
-  <template>
-    <rect id="zoom" class="zoom" data-prevent-focus="true" width="200%" height="200%" x="-50%" y="-50%" opacity$="[[opacity]]" fill="#123"></rect>'
-    <g id="zoomGroup" class="zoomGroup">
-      <content></content>
-    </g>
-  </template>
-</dom-module>
-<script>
-(function() {
-  'use strict';
+The following custom properties and mixins are available for styling:
 
-  Polymer({
-    is: 'd3-enable-zoom',
-    extends: 'g',
-    namespace: 'http://www.w3.org/2000/svg',
- ....
-```
+Custom property | Description | Default
+----------------|-------------|----------
+`--d3-background-color` | color for the svg viewport | `--primary-background-color`
+`--d3-layout-stroke-color` | stroke color for the nodes | `--dark-primary-color`
+`--d3-layout-fill-color` | fill color for the nodes | `--primary-background-color`
+`--d3-layout-selected-color` | stroke color for selected nodes | `--dark-accent-color`
+`--d3-layout-collapsed-color` | fill color for collapsed nodes | `--light-primary-color`
+`--d3-layout-text-color` | text color | `--secondary-text-color`
+`--d3-layout-link-color` | link color | `--secondary-text-color`
+`--d3-layout-ghost-color` | color for circles when dragging nodes | `--dark-accent-color`
+`--d3-layout-entity` | mixin for node entity | {}
+`d3-layout-entity-selected` | mixin for selected node entity | {}
+`d3-layout-entity-collapsed` | mixin for collapsed node | {}
+`d3-layout-text` | mixin for text | {}
+`d3-layout-link` | mixin for link | {}
 
 @demo
 -->
@@ -87,8 +71,8 @@ and `d3-enable-zoom` declared as
   }
   
   #svg::content .node .entity {
-    fill: #fff;
-    stroke: var(--d3-layout-color, --dark-primary-color);
+    fill: var(--d3-layout-fill-color,--primary-background-color);
+    stroke: var(--d3-layout-stroke-color, --dark-primary-color);
     stroke-width: 3px;
     @apply(--d3-layout-entity);
   }
@@ -96,12 +80,13 @@ and `d3-enable-zoom` declared as
   #svg::content .node.selected .entity {
     stroke: var(--d3-layout-selected-color, --dark-accent-color);
     stroke-width: 4px;
+     @apply(--d3-layout-entity-selected);
   }
   
-  #svg::content .entity.hasChildren {
+  #svg::content .entity.collapsed {
     /*fill: #fff;*/
-    fill: var(--d3-layout-light-color, --light-primary-color);
-    @apply(--d3-layout-entity-children);
+    fill: var(--d3-layout-collapsed-color, --light-primary-color);
+    @apply(--d3-layout-entity-collapsed);
     /* stroke-width: 3px; */
   }
   
@@ -312,6 +297,8 @@ and `d3-enable-zoom` declared as
        */
     selectNode: function(node, dom) { // called by firing the select event
       if (node.detail && node.detail.node) {
+        // node is in fact an event. We will refire the event to normalize
+        node.stopPropagation();
         dom = node.detail.dom;
         node = node.detail.node;
       }
@@ -320,7 +307,7 @@ and `d3-enable-zoom` declared as
         if (this.multiSelect) {
           node = node[0];
         } else {
-          return node.forEach(this.nodeSelect, this)
+          return node.forEach(this.nodeSelect, this);
         }
       }
       var index = this.selected.indexOf(node);
@@ -334,7 +321,8 @@ and `d3-enable-zoom` declared as
         if (!dom) {
           dom = this.getNode(node);
         }
-        (dom.classed ? dom : d3.select(dom)).classed('selected', true)
+        (dom.classed ? dom : d3.select(dom)).classed('selected', true);
+        this.fire('nodeselect', {node: node});
       }
     },
 
@@ -345,11 +333,12 @@ and `d3-enable-zoom` declared as
      */
     deselectNode: function(node, dom) {
       if (node.detail && node.detail.node) { // called by firing the select event
+        node.stopPropagation();
         dom = node.detail.dom;
         node = node.detail.node;
       }
       if (node instanceof Array) {
-        return node.forEach(this.nodeDeselect, this)
+        return node.forEach(this.nodeDeselect, this);
       }
       var index = this.selected.indexOf(node);
       if (index > -1) {
@@ -359,7 +348,8 @@ and `d3-enable-zoom` declared as
           dom = this.getNode(node);
         }
 
-        (dom.classed ? dom : d3.select(dom)).classed('selected', false)
+        (dom.classed ? dom : d3.select(dom)).classed('selected', false);
+        this.fire('nodedeselect', {node: node});
       }
     },
     /**
@@ -367,7 +357,7 @@ and `d3-enable-zoom` declared as
      * @param d - data for thenode
      */
     getNode: function(d) {
-      var id = d.id || d
+      var id = d.id || d;
       return d3.select(this.$.content).select('[_id="' + id + '"]');
     },
 
@@ -420,7 +410,7 @@ and `d3-enable-zoom` declared as
 
 
       var currentLayout = layout.layout;
-      var diagonal = layout.diagonal;
+      // var diagonal = layout.diagonal;
 
       // var svg = d3.select("body").append("svg")
       var svg = d3.select(this.$.content);
@@ -437,7 +427,7 @@ and `d3-enable-zoom` declared as
         this._setNodes(nodes);
 
         if (currentLayout.normalize) {
-          nodes.forEach(currentLayout.normalize(d));
+          nodes.forEach(currentLayout.normalize);
         }
 
         // Update the nodes…
@@ -451,16 +441,16 @@ and `d3-enable-zoom` declared as
           .call(me._dragListener)
           .attr({
             _id: function(d) {
-              return d.id
+              return d.id;
             },
             class: function(d) {
-              return (d.__selected__ ? 'selected ' : '') + ' node'
+              return (d.__selected__ ? 'selected ' : '') + ' node';
             },
             transform: layout.enter(source)
           })
           // .attr('class', 'node')
           // .attr('transform', )
-          .on('click', click)
+          .on('click', click);
 
         // this.nodeGhost(nodeEnter);
 
@@ -468,7 +458,7 @@ and `d3-enable-zoom` declared as
         nodeEnter.append('circle')
           .attr('r', 1e-6)
           .attr('class', 'entity')
-          .classed('hasChildren', function(d) {
+          .classed('collapsed', function(d) {
             return !!d[_name];
           });
         // .style('fill', function(d) {
@@ -499,7 +489,7 @@ and `d3-enable-zoom` declared as
           .attr('r', 10)
           .each('start', function(d) {
             d3.select(this)
-              .classed('hasChildren', !!d[_name])
+              .classed('collapsed', !!d[_name]);
           });
         // .classed('hasChildren', function(d) {
         //   return !!d._children;
@@ -557,7 +547,7 @@ and `d3-enable-zoom` declared as
           return me.fire(d.__selected__ ? 'nodedeselect' : 'nodeselect', {
             node: d,
             dom: this
-          })
+          });
         }
         var c;
         if (c = d[name]) {
@@ -579,7 +569,7 @@ and `d3-enable-zoom` declared as
     },
 
     attached: function() {
-      console.info("attached");
+      // console.info("attached");
       // `attached` fires once the element and its parents have been inserted
       // into a document.
       //
