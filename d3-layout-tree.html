@@ -59,11 +59,11 @@ Custom property | Description | Default
   }
   
   #svg::content {
-    background: var(--d3-background-color, ---primary-background-color);
+    background-color: var(--d3-background-color, --primary-background-color);
   }
   
   #svg::content rect.zoom {
-    fill: var(--d3-background-color, ---primary-background-color);
+    fill: var(--d3-background-color, --primary-background-color);
   }
   
   #svg::content .node {
@@ -190,49 +190,51 @@ Custom property | Description | Default
        */
       data: {
         type: Array,
+        notify: true,
+        observer: 'draw',
         value: [{
-          name: '1',
+          label: '1',
           children: [{
-            name: '2'
+            label: '2'
           }, {
-            name: '3',
+            label: '3',
             children: [{
-              name: '3.2'
+              label: '3.2'
             }, {
-              name: '3.3'
+              label: '3.3'
             }, {
-              name: '3.4'
+              label: '3.4'
             }, {
-              name: '3.5'
+              label: '3.5'
             }, {
-              name: '3.6'
+              label: '3.6'
             }]
           }, {
-            name: '4'
+            label: '4'
           }, {
-            name: '5',
+            label: '5',
             children: [{
-              name: '5.2'
+              label: '5.2'
             }, {
-              name: '5.3',
+              label: '5.3',
               children: [{
-                name: '5.3.2'
+                label: '5.3.2'
               }, {
-                name: '5.3.3'
+                label: '5.3.3'
               }, {
-                name: '5.3.4'
+                label: '5.3.4'
               }, {
-                name: '5.3.5'
+                label: '5.3.5'
 
               }]
             }, {
-              name: '5.4'
+              label: '5.4'
             }, {
-              name: '5.5'
+              label: '5.5'
 
             }]
           }, {
-            name: '6'
+            label: '6'
           }]
         }]
       },
@@ -245,6 +247,14 @@ Custom property | Description | Default
         readOnly: true
       },
 
+      accessor: {
+        type: Object,
+        value: {
+          label: 'label',
+          id: 'id'
+        }
+      },
+
       /**
        * `links` computed by the layout
        */
@@ -254,7 +264,9 @@ Custom property | Description | Default
       },
 
       height: {
-        type: Number
+        type: Number,
+
+
       },
 
       width: {
@@ -398,11 +410,12 @@ Custom property | Description | Default
         me = this,
         i = 0;
 
-      if (!this.data) {
+      if (!data || !this._dragListener) { // no data or behaviors not yet initialized
         return;
       }
 
       var layout = this.getActiveLayout();
+      var accessor = this.accessor;
 
       var duration = this.duration,
         name = this.childrenName,
@@ -476,7 +489,7 @@ Custom property | Description | Default
             return d[name] || d[_name] ? 'end' : 'start';
           })
           .text(function(d) {
-            return d.name;
+            return d[accessor.label];
           })
           .style('fill-opacity', 1e-6);
 
@@ -577,10 +590,11 @@ Custom property | Description | Default
       // visual state or active behavior (measuring sizes, beginning animations,
       // loading resources, etc).
       // this.initZoom();
+      // console.info('width', this.width);
       if(!this.width || !this.height)  {
         var rect = this.getBoundingClientRect();
-        this.width = rect.width;
-        this.height = rect.height;
+        this.width = rect.width || 300;
+        this.height = rect.height || 300;
       }
       this.draw();
 
